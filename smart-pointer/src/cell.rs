@@ -43,4 +43,9 @@ mod test {
             x2.set(44);
         });
     }
+
+    fn bad2() {
+        let x = Cell::new(vec![42]);
+        let first = x.get();
+    }
 }
