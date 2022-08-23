@@ -1,0 +1,1 @@
+/Volumes/External/Rust/design-pattern/target/debug/design-pattern: /Volumes/External/Rust/design-pattern/src/constructors.rs /Volumes/External/Rust/design-pattern/src/default.rs /Volumes/External/Rust/design-pattern/src/lib.rs /Volumes/External/Rust/design-pattern/src/main.rs /Volumes/External/Rust/design-pattern/src/use_borrowed_types_for_arguments.rs
