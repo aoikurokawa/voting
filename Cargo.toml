@@ -10,3 +10,4 @@ path = "src/lib.rs"
 members = ["smart-pointer"]
 
 [dependencies]
+libc = "0.2.132"
