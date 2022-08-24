@@ -1,13 +1,2 @@
-[package]
-name = "design-pattern"
-version = "0.1.0"
-edition = "2021"
-
-[lib]
-path = "src/lib.rs"
-
 [workspace]
-members = ["smart-pointer"]
-
-[dependencies]
-libc = "0.2.132"
+members = ["smart-pointer", "idioms", "design-pattern"]
