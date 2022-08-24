@@ -1,13 +1,13 @@
-type FnPtr = fn() -> String;
-pub trait Migration {
-    fn execute(&self) -> &str;
-    fn rollback(&self) -> &str;
-}
+// type FnPtr = fn() -> String;
+// pub trait Migration {
+//     fn execute(&self) -> &str;
+//     fn rollback(&self) -> &str;
+// }
 
-pub struct Command {
-    execute: FnPtr,
-    rollback: FnPtr,
-}
+// pub struct Command {
+//     execute: FnPtr,
+//     rollback: FnPtr,
+// }
 
 // pub struct CreateTable;
 // impl Migration for CreateTable {
@@ -31,38 +31,64 @@ pub struct Command {
 //     }
 // }
 
-struct Schema {
-    commands: Vec<Command>,
+// struct Schema {
+//     commands: Vec<Command>,
+// }
+
+// impl Schema {
+//     fn new() -> Self {
+//         Self { commands: vec![] }
+//     }
+
+//     fn add_migration(&mut self, execute: FnPtr, rollback: FnPtr) {
+//         self.commands.push(Command { execute, rollback })
+//     }
+
+//     fn execute(&self) -> Vec<String> {
+//         self.commands.iter().map(|cmd| (cmd.execute)()).collect()
+//     }
+
+//     fn rollback(&self) -> Vec<String> {
+//         self.commands
+//             .iter()
+//             .rev()
+//             .map(|cmd| (cmd.rollback)())
+//             .collect()
+//     }
+// }
+
+// fn add_field() -> String {
+//     "add field".to_string()
+// }
+
+// fn remove_field() -> String {
+//     "remove field".to_string()
+// }
+
+trait Command {
+    fn execute(&self);
 }
 
-impl Schema {
-    fn new() -> Self {
-        Self { commands: vec![] }
-    }
-
-    fn add_migration(&mut self, execute: FnPtr, rollback: FnPtr) {
-        self.commands.push(Command { execute, rollback })
-    }
-
-    fn execute(&self) -> Vec<String> {
-        self.commands.iter().map(|cmd| (cmd.execute)()).collect()
-    }
-
-    fn rollback(&self) -> Vec<String> {
-        self.commands
-            .iter()
-            .rev()
-            .map(|cmd| (cmd.rollback)())
-            .collect()
-    }
+struct MacroCommand {
+    stack: Vec<Box<dyn Command>>,
 }
 
-fn add_field() -> String {
-    "add field".to_string()
-}
+impl MacroCommand {
+    fn new() -> MacroCommand {
+        MacroCommand { stack: Vec::new() }
+    }
 
-fn remove_field() -> String {
-    "remove field".to_string()
+    fn append(&mut self, cmd: Box<dyn Command>) {
+        self.stack.push(cmd);
+    }
+
+    fn undo(&mut self) {
+        self.stack.pop();
+    }
+
+    fn clear(&mut self) {
+        self.stack.clear();
+    }
 }
 
 #[cfg(test)]
