@@ -91,20 +91,89 @@ impl MacroCommand {
     }
 }
 
+impl Command for MacroCommand {
+    fn execute(&self) {
+        for command in &self.stack {
+            command.execute();
+        }
+    }
+}
+
+struct DrawCommand {
+    drawable: Box<dyn Drawable>,
+    x: u32,
+    y: u32,
+}
+
+impl DrawCommand {
+    fn new(drawable: Box<dyn Drawable>, x: u32, y: u32) -> DrawCommand {
+        DrawCommand { drawable, x, y }
+    }
+}
+
+impl Command for DrawCommand {
+    fn execute(&self) {
+        self.drawable.draw(self.x, self.y)
+    }
+}
+
+trait Drawable {
+    fn draw(&self, x: u32, y: u32);
+}
+
+#[derive(Clone)]
+struct DrawCanvas {}
+
+impl DrawCanvas {
+    fn new() -> DrawCanvas {
+        DrawCanvas {}
+    }
+}
+
+impl Drawable for DrawCanvas {
+    fn draw(&self, x: u32, y: u32) {
+        println!("draw(x: {}, y: {})", x, y)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
     fn test_migration() {
-        let mut schema = Schema::new();
+        // let mut schema = Schema::new();
 
-        // let cmd = Box::new(CreateTable);
-        schema.add_migration(|| "create table".to_string(), || "drop table".to_string());
-        // let cmd = Box::new(AddField);
-        schema.add_migration(add_field, remove_field);
+        // // let cmd = Box::new(CreateTable);
+        // schema.add_migration(|| "create table".to_string(), || "drop table".to_string());
+        // // let cmd = Box::new(AddField);
+        // schema.add_migration(add_field, remove_field);
 
-        assert_eq!(vec!["create table", "add field"], schema.execute());
-        assert_eq!(vec!["remove field", "drop table"], schema.rollback());
+        // assert_eq!(vec!["create table", "add field"], schema.execute());
+        // assert_eq!(vec!["remove field", "drop table"], schema.rollback());
+    }
+
+    #[test]
+    fn test_draw() {
+        let mut history = MacroCommand::new();
+        let canvas = Box::new(DrawCanvas::new());
+
+        let cmd1 = Box::new(DrawCommand::new(canvas.clone(), 1, 1));
+        let cmd2 = Box::new(DrawCommand::new(canvas.clone(), 2, 2));
+
+        history.append(cmd1);
+        history.append(cmd2);
+
+        println!("-------------");
+        history.execute();
+        println!();
+
+        println!("-----undo----");
+        history.undo();
+        history.execute();
+
+        println!("-----clear---");
+        history.clear();
+        history.execute();
     }
 }
