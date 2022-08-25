@@ -49,4 +49,12 @@ mod tests {
         itr.interpret(&mut postfix);
         assert_eq!(postfix, "12-3+4-");
     }
+
+    #[should_panic]
+    #[test]
+    fn test_wrong_interpreter() {
+        let mut itr = Interpreter::new("2+4+");
+        let mut postfix = String::new();
+        itr.interpret(&mut postfix);
+    }
 }
