@@ -46,6 +46,16 @@ impl Formatter for Json {
     }
 }
 
+struct Addr;
+impl Addr {
+    pub fn add<F>(x: u8, y: u8, f: F) -> u8
+    where
+        F: Fn(u8, u8) -> u8,
+    {
+        f(x, y)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -61,5 +71,23 @@ mod tests {
         Report::generate(Json, &mut s);
         assert!(s.contains(r#"{"one": "1"}"#));
         assert!(s.contains(r#"{"two": "2"}"#));
+    }
+
+    #[test]
+    fn test_strategy_pattern2() {
+        let arith_addr = |x: u8, y: u8| x + y;
+        let bool_addr = |x: u8, y: u8| {
+            if x == 1 || y == 1 {
+                1
+            } else {
+                0
+            }
+        };
+
+        let custom_adder = |x: u8, y: u8| 2 * x + y;
+
+        assert_eq!(9, Addr::add(4, 5, arith_addr));
+        assert_eq!(0, Addr::add(0, 0, bool_addr));
+        assert_eq!(5, Addr::add(1, 3, custom_adder));
     }
 }
