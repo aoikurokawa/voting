@@ -1,2 +1,2 @@
 [workspace]
-members = [ "structural", "creational"]
+members = [ "structural", "creational", "behavioral"]
