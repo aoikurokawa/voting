@@ -12,8 +12,8 @@ pub trait Component {
 mod test {
     use super::file::File;
 
-  fn test_composite() {
+    fn test_composite() {
         let file1 = File::new("File 1");
         let file2 = File::new("File 2");
-  }  
+    }
 }
