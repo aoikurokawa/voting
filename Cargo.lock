@@ -3,13 +3,5 @@
 version = 3
 
 [[package]]
-name = "design-pattern"
-version = "0.1.0"
-
-[[package]]
-name = "smart-pointer"
-version = "0.1.0"
-
-[[package]]
 name = "structural"
 version = "0.1.0"

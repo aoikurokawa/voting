@@ -1,2 +1,2 @@
 [workspace]
-members = ["smart-pointer", "structural", "design-pattern"]
+members = [ "structural"]

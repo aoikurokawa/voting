@@ -6,7 +6,7 @@ pub struct File {
 
 impl File {
     pub fn new(name: &'static str) -> Self {
-        Self {name}
+        Self { name }
     }
 }
 
