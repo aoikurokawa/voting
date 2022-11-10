@@ -1,10 +1,10 @@
 # Design Pattern in Rust
 
 ## Creational Patterns
-- [Prototype]("https://refactoring.guru/design-patterns/prototype")
+- [Prototype](https://refactoring.guru/design-patterns/prototype)
 
 ## Structural Patterns
-- [Composite]("https://refactoring.guru/design-patterns/composite")
+- [Composite](https://refactoring.guru/design-patterns/composite)
 
 ## Smart Pointer
 - [Smart Pointers in Rust: What, why and how?](https://dev.to/rogertorres/smart-pointers-in-rust-what-why-and-how-oma)
