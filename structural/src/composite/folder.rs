@@ -20,10 +20,7 @@ impl Folder {
 
 impl Component for Folder {
     fn search(&self, keyword: &str) {
-        println!(
-            "Searching recursively for keyword {} in folder {}",
-            keyword, self.name
-        );
+        println!("Searching recursively for keyword {} in folder {}", keyword, self.name);
 
         for component in self.components.iter() {
             component.search(keyword);
