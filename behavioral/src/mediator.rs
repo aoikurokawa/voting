@@ -38,7 +38,6 @@ impl Mediator for TrainStation {
                 next_train.arrive(self);
                 self.trains.insert(next_train_name.clone(), next_train);
 
-
                 self.train_on_platform = Some(next_train_name);
             }
         }
@@ -72,7 +71,7 @@ pub struct FreightTrain {
 
 impl FreightTrain {
     pub fn new(name: &'static str) -> Self {
-        Self {name: name.into()}
+        Self { name: name.into() }
     }
 }
 
@@ -97,12 +96,12 @@ impl Train for FreightTrain {
 }
 
 pub struct PassengerTrain {
-    name: String
+    name: String,
 }
 
 impl PassengerTrain {
     pub fn new(name: &'static str) -> Self {
-        Self {name: name.into()}
+        Self { name: name.into() }
     }
 }
 
@@ -139,7 +138,7 @@ mod tests {
 
         station.accept(train1);
         station.accept(train2);
-            
+
         station.depart("Train 1");
         station.depart("Train 2");
         station.depart("Train 3");

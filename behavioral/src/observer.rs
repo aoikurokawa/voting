@@ -34,7 +34,6 @@ impl Publisher {
     }
 }
 
-
 #[derive(Default)]
 pub struct Editor {
     publisher: Publisher,
