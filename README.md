@@ -1,14 +1,12 @@
-# Design Pattern in Rust
+# Voting
 
-## Creational Patterns
-- [Prototype](https://refactoring.guru/design-patterns/prototype)
+Develop a DAO voting program using Anchor. This program should allow users to vote on proposals and display results. Optionally, implement "privacy" voting using Zero-Knowledge (ZK) proofs or verifiable compute. Reward points should be given to users for participation.
 
-## Structural Patterns
-- [Composite](https://refactoring.guru/design-patterns/composite)
+- Create a DAO voting system
+- Implement a voting system and display result
+- Add privacy voting using ZK proofs or verifiable compute
+- Reward points to users for voting participation
 
-## Smart Pointer
-- [Smart Pointers in Rust: What, why and how?](https://dev.to/rogertorres/smart-pointers-in-rust-what-why-and-how-oma)
-- [Smart Pointers and Interir Mutability](https://www.youtube.com/watch?v=8O0Nt9qY_vo)
 
 
 ## Reference
