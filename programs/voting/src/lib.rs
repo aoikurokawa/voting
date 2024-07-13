@@ -10,9 +10,12 @@ pub mod constants {
 
 #[program]
 pub mod voting {
-    use anchor_lang::context::Context;
+    use anchor_lang::{
+        context::Context,
+        solana_program::{clock::Clock, sysvar::Sysvar},
+    };
 
-    use crate::{CreateProposal, Join, Vote};
+    use crate::{CreateProposal, Join, StartVote, Vote, VotingErrorCode};
 
     pub fn join(ctx: Context<Join>) -> anchor_lang::Result<()> {
         let user = &mut ctx.accounts.user;
@@ -26,6 +29,18 @@ pub mod voting {
         proposal.title = title;
         proposal.votes_for = 0;
         proposal.votes_against = 0;
+        proposal.start = 0;
+        proposal.end = 0;
+
+        Ok(())
+    }
+
+    pub fn start_vote(ctx: Context<StartVote>, end: i64) -> anchor_lang::Result<()> {
+        let proposal = &mut ctx.accounts.proposal;
+
+        let clock = Clock::get()?;
+        proposal.start = clock.unix_timestamp;
+        proposal.end = end;
 
         Ok(())
     }
@@ -33,6 +48,15 @@ pub mod voting {
     pub fn vote(ctx: Context<Vote>, vote: bool) -> anchor_lang::Result<()> {
         let proposal = &mut ctx.accounts.proposal;
         let user = &mut ctx.accounts.user;
+
+        if proposal.start == 0 {
+            return Err(VotingErrorCode::NotStarted.into());
+        }
+
+        let clock = Clock::get()?;
+        if proposal.end < clock.unix_timestamp {
+            return Err(VotingErrorCode::AlreadyFinished.into());
+        }
 
         if vote {
             proposal.votes_for += 1;
@@ -82,6 +106,12 @@ pub struct CreateProposal<'info> {
 }
 
 #[derive(Accounts)]
+pub struct StartVote<'info> {
+    #[account(mut)]
+    pub proposal: Account<'info, Proposal>,
+}
+
+#[derive(Accounts)]
 pub struct Vote<'info> {
     #[account(mut)]
     pub proposal: Account<'info, Proposal>,
@@ -95,9 +125,20 @@ pub struct Proposal {
     title: String,
     votes_for: u32,
     votes_against: u32,
+    start: i64,
+    end: i64,
 }
 
 #[account]
 pub struct User {
     points: u32,
+}
+
+#[error_code]
+pub enum VotingErrorCode {
+    #[msg("Voting has not started yet")]
+    NotStarted,
+
+    #[msg("Voting has already finished")]
+    AlreadyFinished,
 }
