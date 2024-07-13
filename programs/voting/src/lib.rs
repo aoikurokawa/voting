@@ -3,29 +3,46 @@ use anchor_lang::prelude::*;
 declare_id!("CaCJAg3ifFiGyVKYxZr4QwH2R9RvrDiVEgPntzXhXVP3");
 
 pub mod constants {
+    pub const GOVERNANCE_SEED: &[u8] = b"governance";
     pub const USER_SEED: &[u8] = b"user";
     pub const PROPOSAL_SEED: &[u8] = b"proposal";
-    pub const PREDICTION_SEED: &[u8] = b"prediction";
 }
 
 #[program]
 pub mod voting {
     use anchor_lang::{
         context::Context,
-        solana_program::{clock::Clock, sysvar::Sysvar},
+        solana_program::{clock::Clock, pubkey::Pubkey, sysvar::Sysvar},
     };
 
-    use crate::{CreateProposal, Join, StartVote, Vote, VotingErrorCode};
+    use crate::{CreateGovernance, CreateProposal, Join, StartVote, Vote, VotingErrorCode};
 
-    pub fn join(ctx: Context<Join>) -> anchor_lang::Result<()> {
-        let user = &mut ctx.accounts.user;
-        user.points = 0;
+    pub fn create_governance(
+        ctx: Context<CreateGovernance>,
+        name: String,
+    ) -> anchor_lang::Result<()> {
+        let governance = &mut ctx.accounts.governance;
+        governance.name = name;
 
         Ok(())
     }
 
-    pub fn create_proposal(ctx: Context<CreateProposal>, title: String) -> anchor_lang::Result<()> {
+    pub fn join(ctx: Context<Join>, governance_key: Pubkey) -> anchor_lang::Result<()> {
+        let user = &mut ctx.accounts.user;
+        user.points = 0;
+
+        let _governance_key = governance_key;
+
+        Ok(())
+    }
+
+    pub fn create_proposal(
+        ctx: Context<CreateProposal>,
+        governance_key: Pubkey,
+        title: String,
+    ) -> anchor_lang::Result<()> {
         let proposal = &mut ctx.accounts.proposal;
+        proposal.governance = governance_key;
         proposal.title = title;
         proposal.votes_for = 0;
         proposal.votes_against = 0;
@@ -71,13 +88,32 @@ pub mod voting {
 }
 
 #[derive(Accounts)]
+#[instruction(name: String)]
+pub struct CreateGovernance<'info> {
+    #[account(
+        init,
+        seeds = [crate::constants::GOVERNANCE_SEED, name.as_str().as_ref()],
+        bump,
+        payer = authority,
+        space = 8 + std::mem::size_of::<Governance>()
+    )]
+    pub governance: Account<'info, Governance>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(governance_key: Pubkey)]
 pub struct Join<'info> {
     #[account(
         init,
-        seeds = [crate::constants::USER_SEED, authority.key().as_ref()],
+        seeds = [crate::constants::USER_SEED, governance_key.as_ref(), authority.key().as_ref()],
         bump,
         payer = authority,
-        space = 8 + 64 + 4 + 4
+        space = 8 + std::mem::size_of::<User>()
     )]
     pub user: Account<'info, User>,
 
@@ -88,14 +124,14 @@ pub struct Join<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(title: String)]
+#[instruction(title: String, governance_key: Pubkey)]
 pub struct CreateProposal<'info> {
     #[account(
         init,
-        seeds = [crate::constants::PROPOSAL_SEED, title.as_str().as_ref()],
+        seeds = [crate::constants::PROPOSAL_SEED, governance_key.as_ref(), title.as_str().as_ref()],
         bump,
         payer = user,
-        space = 8 + 64 + 4 + 4
+        space = 8 + std::mem::size_of::<Proposal>()
     )]
     pub proposal: Account<'info, Proposal>,
 
@@ -121,7 +157,13 @@ pub struct Vote<'info> {
 }
 
 #[account]
+pub struct Governance {
+    name: String,
+}
+
+#[account]
 pub struct Proposal {
+    governance: Pubkey,
     title: String,
     votes_for: u32,
     votes_against: u32,
