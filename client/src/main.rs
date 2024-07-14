@@ -1,15 +1,16 @@
 use std::str::FromStr;
 
 use anchor_client::{
+    solana_client::rpc_client::RpcClient,
     solana_sdk::{
         commitment_config::CommitmentConfig, signature::read_keypair_file, signer::Signer,
     },
     Client, Cluster,
 };
-use anchor_lang::system_program;
-use chrono::DateTime;
+use anchor_lang::{system_program, AnchorDeserialize};
 use clap::{Parser, Subcommand};
 use solana_program::pubkey::Pubkey;
+use voting::Proposal;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -49,8 +50,9 @@ enum Commands {
         /// Proposal title
         title: String,
 
-        /// 2024-06-13 13:03:00
-        end: String,
+        /// 1720950304
+        /// https://unixtime.org/
+        end: i64,
     },
 
     /// Start the voting
@@ -82,10 +84,19 @@ enum Commands {
         /// salt
         salt: String,
     },
+
+    /// Show the result
+    ShowResult {
+        /// Superteam
+        name: String,
+
+        /// Proposal title
+        title: String,
+    },
 }
 
 fn main() {
-    let program_id = "2BqXsVFG5Woo6VVg6pK4RM7g6W7YZwCSM9wYou8kzu6F";
+    let program_id = "CaCJAg3ifFiGyVKYxZr4QwH2R9RvrDiVEgPntzXhXVP3";
 
     let anchor_wallet = std::env::var("ANCHOR_WALLET").unwrap();
     let payer = read_keypair_file(&anchor_wallet).unwrap();
@@ -141,10 +152,6 @@ fn main() {
         Commands::CreateProposal { name, title } => {
             let (governance_pda, _bump) =
                 Pubkey::find_program_address(&[b"governance", name.as_bytes()], &program_id);
-            let (user_pda, _bump) = Pubkey::find_program_address(
-                &[b"user", governance_pda.as_ref(), payer.pubkey().as_ref()],
-                &program_id,
-            );
             let (proposal_pda, _bump) = Pubkey::find_program_address(
                 &[b"proposal", governance_pda.as_ref(), title.as_bytes()],
                 &program_id,
@@ -154,12 +161,12 @@ fn main() {
                 .request()
                 .accounts(voting::accounts::CreateProposal {
                     proposal: proposal_pda,
-                    user: user_pda,
+                    user: payer.pubkey(),
                     system_program: system_program::ID,
                 })
                 .args(voting::instruction::CreateProposal {
                     governance_key: governance_pda,
-                    title: title.to_string(),
+                    title: title.as_bytes().to_vec(),
                 })
                 .send()
                 .expect("Failed to send create proposal transaction");
@@ -175,17 +182,15 @@ fn main() {
                 &program_id,
             );
 
-            let end = format!("{end} +0000");
-            let end = DateTime::parse_from_str(&end, "%Y-%m-%d %H:%M:%S %z").unwrap();
+            // let end = format!("{end} +0000");
+            // let end = DateTime::parse_from_str(&end, "%Y-%m-%d %H:%M:%S %z").unwrap();
 
             let sig = program
                 .request()
                 .accounts(voting::accounts::StartVote {
                     proposal: proposal_pda,
                 })
-                .args(voting::instruction::StartVote {
-                    end: end.timestamp(),
-                })
+                .args(voting::instruction::StartVote { end: *end })
                 .send()
                 .expect("Failed to send start vote transaction");
 
@@ -280,6 +285,24 @@ fn main() {
                 .expect("Failed to send reveal vote transaction");
 
             println!("Successfully initialized: https://solscan.io/tx/{sig}?cluster=devnet");
+        }
+        Commands::ShowResult { name, title } => {
+            let (governance_pda, _bump) =
+                Pubkey::find_program_address(&[b"governance", name.as_bytes()], &program_id);
+            let (proposal_pda, _bump) = Pubkey::find_program_address(
+                &[b"proposal", governance_pda.as_ref(), title.as_bytes()],
+                &program_id,
+            );
+
+            let url = "https://api.devnet.solana.com".to_string();
+            let rpc_client = RpcClient::new(url);
+            let account = rpc_client
+                .get_account(&proposal_pda)
+                .expect("get proposal account");
+            let proposal = Proposal::try_from_slice(&account.data[8..]).expect("deserialize data");
+
+            println!("Votes for: {}", proposal.votes_for);
+            println!("Votes against: {}", proposal.votes_against);
         }
     }
 }

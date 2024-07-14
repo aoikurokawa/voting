@@ -42,11 +42,11 @@ pub mod voting {
     pub fn create_proposal(
         ctx: Context<CreateProposal>,
         governance_key: Pubkey,
-        title: String,
+        title: Vec<u8>,
     ) -> anchor_lang::Result<()> {
         let proposal = &mut ctx.accounts.proposal;
         proposal.governance = governance_key;
-        proposal.title = title;
+        proposal.title = String::from_utf8(title).unwrap();
         proposal.votes_for = 0;
         proposal.votes_against = 0;
         proposal.start = 0;
@@ -153,14 +153,14 @@ pub struct Join<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(title: String, governance_key: Pubkey)]
+#[instruction(governance_key: Pubkey, title: String)]
 pub struct CreateProposal<'info> {
     #[account(
         init,
         seeds = [crate::constants::PROPOSAL_SEED, governance_key.as_ref(), title.as_str().as_ref()],
         bump,
         payer = user,
-        space = 8 + std::mem::size_of::<Proposal>()
+        space = 8 + 32 + 4 + title.len() + 4 + 4 + 8 + 8
     )]
     pub proposal: Account<'info, Proposal>,
 
@@ -220,8 +220,8 @@ pub struct Governance {
 pub struct Proposal {
     governance: Pubkey,
     title: String,
-    votes_for: u32,
-    votes_against: u32,
+    pub votes_for: u32,
+    pub votes_against: u32,
     start: i64,
     end: i64,
 }
