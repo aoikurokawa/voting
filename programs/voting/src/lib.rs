@@ -1,8 +1,4 @@
 use anchor_lang::prelude::*;
-use ark_bn254::{Bn254, Fr};
-use ark_ff::PrimeField;
-use ark_groth16::{prepare_verifying_key, verify_proof, Proof, VerifyingKey};
-use ark_serialize::CanonicalDeserialize;
 
 declare_id!("CaCJAg3ifFiGyVKYxZr4QwH2R9RvrDiVEgPntzXhXVP3");
 
@@ -11,16 +7,6 @@ pub mod constants {
     pub const USER_SEED: &[u8] = b"user";
     pub const PROPOSAL_SEED: &[u8] = b"proposal";
     pub const COMMIT_VOTE_SEED: &[u8] = b"commit_vote";
-}
-
-pub fn verify_voting_proof(proof_bytes: &[u8], vk_bytes: &[u8], public_inputs: &[u8]) -> bool {
-    let proof = Proof::<Bn254>::deserialize(proof_bytes).unwrap();
-    let vk = VerifyingKey::<Bn254>::deserialize(vk_bytes).unwrap();
-    let pvk = prepare_verifying_key(&vk);
-
-    let public_inputs = Fr::from_le_bytes_mod_order(public_inputs);
-
-    verify_proof(&pvk, &proof, &[public_inputs]).unwrap_or(false)
 }
 
 #[program]
