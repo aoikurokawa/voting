@@ -10,6 +10,7 @@ pub mod constants {
     pub const GOVERNANCE_SEED: &[u8] = b"governance";
     pub const USER_SEED: &[u8] = b"user";
     pub const PROPOSAL_SEED: &[u8] = b"proposal";
+    pub const COMMIT_VOTE_SEED: &[u8] = b"commit_vote";
 }
 
 pub fn verify_voting_proof(proof_bytes: &[u8], vk_bytes: &[u8], public_inputs: &[u8]) -> bool {
@@ -26,12 +27,11 @@ pub fn verify_voting_proof(proof_bytes: &[u8], vk_bytes: &[u8], public_inputs: &
 pub mod voting {
     use anchor_lang::{
         context::Context,
-        solana_program::{clock::Clock, pubkey::Pubkey, sysvar::Sysvar},
+        solana_program::{self, clock::Clock, pubkey::Pubkey, sysvar::Sysvar},
     };
 
     use crate::{
-        verify_voting_proof, CreateGovernance, CreateProposal, Join, StartVote, Vote,
-        VotingErrorCode,
+        CommitVote, CreateGovernance, CreateProposal, Join, RevealVote, StartVote, VotingErrorCode,
     };
 
     pub fn create_governance(
@@ -79,29 +79,49 @@ pub mod voting {
         Ok(())
     }
 
-    pub fn vote(
-        ctx: Context<Vote>,
+    pub fn commit_vote(ctx: Context<CommitVote>, commitment: String) -> anchor_lang::Result<()> {
+        let proposal = &ctx.accounts.proposal;
+
+        let current_time = Clock::get()?.unix_timestamp;
+        if proposal.start > current_time {
+            return Err(VotingErrorCode::NotStarted.into());
+        }
+
+        if proposal.end < current_time {
+            return Err(VotingErrorCode::VotingEnded.into());
+        }
+
+        let vote_commitment = &mut ctx.accounts.vote_commitment;
+
+        vote_commitment.commitment = commitment;
+
+        Ok(())
+    }
+
+    pub fn reveal_vote(
+        ctx: Context<RevealVote>,
         vote: bool,
-        proof: Vec<u8>,
-        vk: Vec<u8>,
-        public_inputs: Vec<u8>,
+        salt: String,
     ) -> anchor_lang::Result<()> {
         let proposal = &mut ctx.accounts.proposal;
         let user = &mut ctx.accounts.user;
 
-        if proposal.start == 0 {
-            return Err(VotingErrorCode::NotStarted.into());
-        }
-
         let clock = Clock::get()?;
-        if proposal.end < clock.unix_timestamp {
-            return Err(VotingErrorCode::AlreadyFinished.into());
+        if proposal.end > clock.unix_timestamp {
+            return Err(VotingErrorCode::VotingNotEnded.into());
         }
 
-        let is_valid = verify_voting_proof(&proof, &vk, &public_inputs);
-        if !is_valid {
-            return Err(VotingErrorCode::InvalidProof.into());
+        let vote_commitment = &ctx.accounts.vote_commitment;
+        let temp = format!("{}{}", vote, salt);
+        let hash = solana_program::hash::hash(temp.as_bytes());
+        if vote_commitment.commitment != hash.to_string() {
+            return Err(VotingErrorCode::InvalidCommitment.into());
         }
+
+        // let is_valid = verify_voting_proof(&proof, &vk, &public_inputs);
+        // if !is_valid {
+        //     return Err(VotingErrorCode::InvalidProof.into());
+        // }
 
         if vote {
             proposal.votes_for += 1;
@@ -176,9 +196,35 @@ pub struct StartVote<'info> {
 }
 
 #[derive(Accounts)]
-pub struct Vote<'info> {
+pub struct CommitVote<'info> {
+    #[account(mut)]
+    pub governance: Account<'info, Governance>,
+
     #[account(mut)]
     pub proposal: Account<'info, Proposal>,
+
+    #[account(
+        init,
+        seeds = [crate::constants::COMMIT_VOTE_SEED, governance.key().as_ref(), proposal.key().as_ref(), user.key().as_ref()],
+        bump,
+        payer = user,
+        space = 8 + std::mem::size_of::<Proposal>()
+    )]
+    pub vote_commitment: Account<'info, VoteCommitment>,
+
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct RevealVote<'info> {
+    #[account(mut)]
+    pub proposal: Account<'info, Proposal>,
+
+    #[account(mut)]
+    pub vote_commitment: Account<'info, VoteCommitment>,
 
     #[account(mut)]
     pub user: Account<'info, User>,
@@ -200,6 +246,11 @@ pub struct Proposal {
 }
 
 #[account]
+pub struct VoteCommitment {
+    commitment: String,
+}
+
+#[account]
 pub struct User {
     points: u32,
 }
@@ -209,9 +260,12 @@ pub enum VotingErrorCode {
     #[msg("Voting has not started yet")]
     NotStarted,
 
-    #[msg("Voting has already finished")]
-    AlreadyFinished,
+    #[msg("Voting ended")]
+    VotingEnded,
 
-    #[msg("Invalid Proof")]
-    InvalidProof,
+    #[msg("Voting not ended")]
+    VotingNotEnded,
+
+    #[msg("Invalid Commitment")]
+    InvalidCommitment,
 }
