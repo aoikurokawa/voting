@@ -118,11 +118,6 @@ pub mod voting {
             return Err(VotingErrorCode::InvalidCommitment.into());
         }
 
-        // let is_valid = verify_voting_proof(&proof, &vk, &public_inputs);
-        // if !is_valid {
-        //     return Err(VotingErrorCode::InvalidProof.into());
-        // }
-
         if vote {
             proposal.votes_for += 1;
         } else {
