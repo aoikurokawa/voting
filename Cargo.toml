@@ -1,10 +1,12 @@
 [workspace]
-members = [
+members = [ "client",
     "programs/voting"
 ]
 resolver = "2"
 
 [workspace.dependencies]
+anchor-client = "0.29.0"
+anchor-lang = "0.29.0"
 ark-bn254 = "0.3"
 ark-crypto-primitives = "0.3"
 ark-ec = "0.3"
@@ -14,8 +16,10 @@ ark-relations = "0.3"
 ark-r1cs-std = "0.3"
 ark-serialize = "0.3"
 ark-std = "0.3"
+chrono = "0.4.38"
 rand = "0.8"  # Add this for randomness
 sha2 = "0.10"
+solana-program = "1.16.0"
 
 [profile.release]
 overflow-checks = true

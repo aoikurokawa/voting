@@ -16,7 +16,7 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-anchor-lang = "0.29.0"
+anchor-lang = { workspace = true }
 ark-bn254 = { workspace = true }
 ark-crypto-primitives = { workspace = true }
 ark-ec = { workspace = true }
