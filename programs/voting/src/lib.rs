@@ -1,4 +1,8 @@
 use anchor_lang::prelude::*;
+use ark_bn254::{Bn254, Fr};
+use ark_ff::PrimeField;
+use ark_groth16::{prepare_verifying_key, verify_proof, Proof, VerifyingKey};
+use ark_serialize::CanonicalDeserialize;
 
 declare_id!("CaCJAg3ifFiGyVKYxZr4QwH2R9RvrDiVEgPntzXhXVP3");
 
@@ -8,6 +12,16 @@ pub mod constants {
     pub const PROPOSAL_SEED: &[u8] = b"proposal";
 }
 
+pub fn verify_voting_proof(proof_bytes: &[u8], vk_bytes: &[u8], public_inputs: &[u8]) -> bool {
+    let proof = Proof::<Bn254>::deserialize(proof_bytes).unwrap();
+    let vk = VerifyingKey::<Bn254>::deserialize(vk_bytes).unwrap();
+    let pvk = prepare_verifying_key(&vk);
+
+    let public_inputs = Fr::from_le_bytes_mod_order(public_inputs);
+
+    verify_proof(&pvk, &proof, &[public_inputs]).unwrap_or(false)
+}
+
 #[program]
 pub mod voting {
     use anchor_lang::{
@@ -15,7 +29,10 @@ pub mod voting {
         solana_program::{clock::Clock, pubkey::Pubkey, sysvar::Sysvar},
     };
 
-    use crate::{CreateGovernance, CreateProposal, Join, StartVote, Vote, VotingErrorCode};
+    use crate::{
+        verify_voting_proof, CreateGovernance, CreateProposal, Join, StartVote, Vote,
+        VotingErrorCode,
+    };
 
     pub fn create_governance(
         ctx: Context<CreateGovernance>,
@@ -62,7 +79,13 @@ pub mod voting {
         Ok(())
     }
 
-    pub fn vote(ctx: Context<Vote>, vote: bool) -> anchor_lang::Result<()> {
+    pub fn vote(
+        ctx: Context<Vote>,
+        vote: bool,
+        proof: Vec<u8>,
+        vk: Vec<u8>,
+        public_inputs: Vec<u8>,
+    ) -> anchor_lang::Result<()> {
         let proposal = &mut ctx.accounts.proposal;
         let user = &mut ctx.accounts.user;
 
@@ -73,6 +96,11 @@ pub mod voting {
         let clock = Clock::get()?;
         if proposal.end < clock.unix_timestamp {
             return Err(VotingErrorCode::AlreadyFinished.into());
+        }
+
+        let is_valid = verify_voting_proof(&proof, &vk, &public_inputs);
+        if !is_valid {
+            return Err(VotingErrorCode::InvalidProof.into());
         }
 
         if vote {
@@ -183,4 +211,7 @@ pub enum VotingErrorCode {
 
     #[msg("Voting has already finished")]
     AlreadyFinished,
+
+    #[msg("Invalid Proof")]
+    InvalidProof,
 }
