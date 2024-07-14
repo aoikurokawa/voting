@@ -1,7 +1,7 @@
 [workspace]
 members = [ "client",
     "programs/voting"
-]
+, "tests"]
 resolver = "2"
 
 [workspace.dependencies]

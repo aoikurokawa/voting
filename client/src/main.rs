@@ -182,9 +182,6 @@ fn main() {
                 &program_id,
             );
 
-            // let end = format!("{end} +0000");
-            // let end = DateTime::parse_from_str(&end, "%Y-%m-%d %H:%M:%S %z").unwrap();
-
             let sig = program
                 .request()
                 .accounts(voting::accounts::StartVote {
@@ -204,10 +201,6 @@ fn main() {
         } => {
             let (governance_pda, _bump) =
                 Pubkey::find_program_address(&[b"governance", name.as_bytes()], &program_id);
-            // let (user_pda, _bump) = Pubkey::find_program_address(
-            //     &[b"user", governance_pda.as_ref(), payer.pubkey().as_ref()],
-            //     &program_id,
-            // );
             let (proposal_pda, _bump) = Pubkey::find_program_address(
                 &[b"proposal", governance_pda.as_ref(), title.as_bytes()],
                 &program_id,
